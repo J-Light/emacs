@@ -12,10 +12,6 @@
 (setq custom-file "~/.emacs.d/my-custom.el")
 (load custom-file)
 
-(eval-when-compile
-  (require 'use-package))
-
-
 ;; Basic Emacs Settings
 (setq inhibit-startup-screen t)
 (setq initial-scratch-message nil)
@@ -24,8 +20,19 @@
 (setq ring-bell-function #'ignore)
 (setq-default indent-tabs-mode nil)
 (defalias 'yes-or-no-p 'y-or-n-p)
+(put 'upcase-region 'disabled nil)
 (menu-bar-mode 0)
-(tool-bar-mode 0)
+(when (display-graphic-p)
+  (tool-bar-mode 0))
+
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(eval-when-compile
+  (require 'use-package))
+
 
 ;; NXML Settings
 (use-package nxml-mode
@@ -69,7 +76,7 @@
   :init (global-flycheck-mode)
   :hook (python-mode . flycheck-mode)
   :config
-  (use-package flyckeck-rust
+  (use-package flycheck-rust
     :ensure t
     :hook (flycheck-mode . flycheck-rust-setup))
   (use-package flycheck-irony
@@ -82,21 +89,26 @@
   :ensure t
   :bind ("C-c i" . org-fill-paragraph)
   :hook (org-mode . turn-on-flyspell)
-  :config
+  :init
   (require 'ox-latex)
   (require 'ox-extra)
+  (add-to-list 'org-latex-classes
+               '("aiaa"
+                 "\\documentclass[]{new-aiaa}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
   (ox-extras-activate '(latex-header-blocks ignore-headlines))
-  (use-package org-ref
-    :ensure t
-    :bind (("C-c M-r" . org-ref-helm-insert-label-link)
-	   ("C-c r" . org-ref-helm-insert-ref-link))))
+  (setf org-highlight-latex-and-related '(latex))
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5)))
 
-;; ANSYS Mode
-(use-package ansys-mode
-  :load-path "~/.emacs.d/ansys-mode"
-  :mode (("\\.mac\\'" . ansys-mode)
-	 ("\\.inp\\'" . ansys-mode)
-	 ("\\.anf$" . ansys-mode)))
+(use-package org-ref
+  :requires org-plus-contrib
+  :ensure t
+  :bind (("C-c M-r" . org-ref-helm-insert-label-link)
+         ("C-c r" . org-ref-helm-insert-ref-link)))
 
 ;; Nastran Mode
 (use-package nastran-mode
@@ -108,6 +120,7 @@
   :ensure t
   :init
   (add-hook 'after-init-hook 'global-company-mode)
+  (setq company-dabbrev-downcase nil)
   :config
   (use-package company-jedi
     :ensure t )
@@ -119,6 +132,17 @@
   (add-hook 'python-mode-hook 'my/python-mode-hook)
   (add-to-list 'company-backends 'company-irony)
   (add-to-list 'company-backends 'company-go))
+
+                                        ; ANSYS
+;; ANSYS Mode
+(use-package ansys-mode
+  :load-path "~/.emacs.d/ansys-mode"
+  :mode (("\\.mac\\'" . ansys-mode)
+	 ("\\.inp\\'" . ansys-mode)
+	 ("\\.anf$" . ansys-mode)))
+
+(use-package scheme
+  :mode (("\\.jou\\'" . scheme-mode)))
 
 
                                         ;Languages
@@ -159,9 +183,26 @@
 (use-package python-mode
   :commands company-complete)
 
+;; Issue with windows
+(when (memq system-type '(windows-nt ms-dos))
+  (setq-default python-shell-completion-native-enable nil))
+
 (use-package virtualenvwrapper
   :ensure t
-  :config
-  (setq venv-location "~/Envs")
-  (venv-initialize-interactive-shells))
+  :init
+  (venv-initialize-interactive-shells)
+  (venv-initialize-eshell)
+  (when (memq system-type '(windows-nt ms-dos))
+    (setq venv-location (expand-file-name "~/Envs")))
+  (setq python-environment-directory venv-location))
+
+;; Matlab
+(use-package matlab-mode
+  :ensure t
+  :mode (("\\.m\\'" . matlab-mode))
+  :init
+  (setq matlab-shell-command "matlab")
+  (setq matlab-indent-function t))
+
 ;;;
+
