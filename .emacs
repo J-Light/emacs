@@ -25,6 +25,37 @@
 (when (display-graphic-p)
   (tool-bar-mode 0))
 
+;; Essential Lisp macros
+(defun reb-query-replace (to-string)
+  "Replace current RE from point with `query-replace-regexp'."
+  (interactive
+   (progn (barf-if-buffer-read-only)
+          (list (query-replace-read-to (reb-target-binding reb-regexp)
+                                       "Query replace"  t))))
+  (with-current-buffer reb-target-buffer
+    (query-replace-regexp (reb-target-binding reb-regexp) to-string)))
+
+(defun pdf-paste-title ()
+  "Paste a multiline title from a pdf."
+  (interactive)
+  (generate-new-buffer "*PDFpastetemp*")
+  (switch-to-buffer "*PDFpastetemp*")
+  (yank nil)
+  (goto-char 0)
+  (perform-replace "\n" " " nil nil nil)
+  (goto-char 0)
+  (perform-replace ":" " -" nil nil nil)
+  (goto-char 0)
+  (kill-region nil nil 1)
+  (kill-buffer)
+  (yank nil))
+
+
+
+
+
+
+
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -146,6 +177,17 @@
 
 
                                         ;Languages
+(use-package csharp-mode
+  :ensure t
+  :init
+  (defun my-csharp-mode-hook ()
+    ;; enable the stuff you want for C# here
+    (if (> emacs-major-version 24)
+        (electric-pair-local-mode 1)
+      (electric-pair-mode 1)))
+  (add-hook 'csharp-mode-hook 'my-csharp-mode-hook))
+
+
 (use-package rust-mode
   :ensure t
   :mode "\\.rs\\'"
