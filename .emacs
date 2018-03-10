@@ -9,7 +9,11 @@
 
 (package-initialize)
 
+;; Bootstrap custom file settings
 (setq custom-file "~/.emacs.d/my-custom.el")
+(unless (file-exists-p custom-file)
+  (with-temp-buffer
+    (write-file custom-file)))
 (load custom-file)
 
 ;; Basic Emacs Settings
@@ -186,6 +190,9 @@
         (electric-pair-local-mode 1)
       (electric-pair-mode 1)))
   (add-hook 'csharp-mode-hook 'my-csharp-mode-hook))
+
+(use-package php-mode
+  :ensure t)
 
 
 (use-package rust-mode
