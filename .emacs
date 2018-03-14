@@ -55,11 +55,6 @@
   (yank nil))
 
 
-
-
-
-
-
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -137,13 +132,46 @@
                  ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
   (ox-extras-activate '(latex-header-blocks ignore-headlines))
   (setf org-highlight-latex-and-related '(latex))
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5)))
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 
-(use-package org-ref
-  :requires org-plus-contrib
+  (use-package org-ref
   :ensure t
-  :bind (("C-c M-r" . org-ref-helm-insert-label-link)
-         ("C-c r" . org-ref-helm-insert-ref-link)))
+  :bind (("C-c C-]" . org-ref-helm-insert-label-link)
+          ("C-c M-]" . org-ref-helm-insert-ref-link)))
+
+   (setq org-ref-bibliography-notes (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
+        org-ref-default-bibliography '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
+        org-ref-pdf-directory (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
+  (unless (file-exists-p org-ref-pdf-directory)
+    (make-directory org-ref-pdf-directory t))
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages '((python . t)))
+
+  (setq org-latex-pdf-process
+        '("pdflatex -interaction nonstopmode -output-directory %o %f"
+          "bibtex %b"
+          "pdflatex -interaction nonstopmode -output-directory %o %f"
+          "pdflatex -interaction nonstopmode -output-directory %o %f"))
+
+  (setq bibtex-autokey-year-length 4
+        bibtex-autokey-name-year-separator "-"
+        bibtex-autokey-year-title-separator "-"
+        bibtex-autokey-titleword-separator "-"
+        bibtex-autokey-titlewords 2
+        bibtex-autokey-titlewords-stretch 1
+        bibtex-autokey-titleword-length 5)
+
+
+  (add-to-list 'org-latex-default-packages-alist '("" "natbib" "") t)
+  
+  (require 'org-ref)
+  (require 'org-ref-pdf)
+  (require 'org-ref-url-utils))
+
 
 ;; Nastran Mode
 (use-package nastran-mode
