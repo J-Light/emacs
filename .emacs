@@ -64,6 +64,16 @@
   (require 'use-package))
 
 
+;; Appearence
+(when (display-graphic-p)
+  (use-package smart-mode-line
+    :ensure t
+    :init
+    (sml/setup)))
+
+
+
+
 ;; NXML Settings
 (use-package nxml-mode
   :config
@@ -133,6 +143,20 @@
   (ox-extras-activate '(latex-header-blocks ignore-headlines))
   (setf org-highlight-latex-and-related '(latex))
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+  (setq org-latex-hyperref-template
+        "\\hypersetup{
+colorlinks,
+pdfauthor={%a},
+pdftitle={%t},
+pdfkeywords={%k},
+pdfsubject={%d},
+pdfcreator={%c},
+pdflang={%L}}")
+  ;; (setq org-latex-default-packages-alist
+  ;;     (append
+  ;;      (delq(rassoc '("hyperref" nil) org-latex-default-packages-alist)
+  ;;           org-latex-default-packages-alist)
+  ;;      '(("colorlinks,citecolor=blue,linktocpage=true" "hyperref" nil))))
 
   (use-package org-ref
   :ensure t
@@ -142,6 +166,7 @@
    (setq org-ref-bibliography-notes (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
         org-ref-default-bibliography '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
         org-ref-pdf-directory (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
+   
   (unless (file-exists-p org-ref-pdf-directory)
     (make-directory org-ref-pdf-directory t))
   (setq org-src-fontify-natively t
@@ -246,15 +271,19 @@
 
 (use-package irony
   :ensure t
-  :hook ((c++-mode . irony-mode)
-         (c-mode . irony-mode)
-         (objc-mode . irony-mode)
+  :hook ((objc-mode . irony-mode)
          (irony-mode . irony-cdb-autosetup-compile-options))
   :config
   (when (boundp 'w32-pipe-read-delay)
-  (setq w32-pipe-read-delay 0))
+    (setq w32-pipe-read-delay 0))
   (when (boundp 'w32-pipe-buffer-size)
-    (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
+    (setq irony-server-w32-pipe-buffer-size (* 64 1024)))
+  :init
+  (defun my-c++-hooks ()
+    (when (member major-mode irony-known-modes)
+      (irony-mode 1)))
+  (add-hook 'c++-mode-hook 'my-c++-hooks)
+  (add-hook 'c-mode-hook 'my-c++-hooks))
 
 ;; Python Settings
 (use-package python-mode
