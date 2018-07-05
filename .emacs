@@ -39,6 +39,13 @@
   (with-current-buffer reb-target-buffer
     (query-replace-regexp (reb-target-binding reb-regexp) to-string)))
 
+(defun clean-org-refs ()
+  (interactive)
+  (beginning-of-buffer)
+  (while (re-search-forward "–" nil t)
+    (replace-match "-")))
+
+
 (defun pdf-paste-title ()
   "Paste a multiline title from a pdf."
   (interactive)
@@ -141,17 +148,19 @@
                  ("\\paragraph{%s}" . "\\paragraph*{%s}")
                  ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
   (ox-extras-activate '(latex-header-blocks ignore-headlines))
+  (setq  org-tags-column -72)
   (setf org-highlight-latex-and-related '(latex))
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
   (setq org-latex-hyperref-template
         "\\hypersetup{
 colorlinks,
+bookmarksopen=true,
 pdfauthor={%a},
 pdftitle={%t},
 pdfkeywords={%k},
 pdfsubject={%d},
-pdfcreator={%c},
-pdflang={%L}}")
+pdfcreator={%c}}
+")
   ;; (setq org-latex-default-packages-alist
   ;;     (append
   ;;      (delq(rassoc '("hyperref" nil) org-latex-default-packages-alist)
@@ -159,16 +168,19 @@ pdflang={%L}}")
   ;;      '(("colorlinks,citecolor=blue,linktocpage=true" "hyperref" nil))))
 
   (use-package org-ref
-  :ensure t
-  :bind (("C-c C-]" . org-ref-helm-insert-label-link)
-          ("C-c M-]" . org-ref-helm-insert-ref-link)))
-
-   (setq org-ref-bibliography-notes (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
-        org-ref-default-bibliography '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
-        org-ref-pdf-directory (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
-   
-  (unless (file-exists-p org-ref-pdf-directory)
-    (make-directory org-ref-pdf-directory t))
+    :ensure t
+    :bind (("C-c C-]" . org-ref-helm-insert-label-link)
+           ("C-c M-]" . org-ref-helm-insert-ref-link))
+    :init
+    (setq org-ref-bibliography-notes
+          (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
+          org-ref-default-bibliography
+          '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
+          org-ref-pdf-directory
+          (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
+    
+    (unless (file-exists-p org-ref-pdf-directory)
+      (make-directory org-ref-pdf-directory t)))
   (setq org-src-fontify-natively t
         org-confirm-babel-evaluate nil
         org-src-preserve-indentation t)
@@ -190,8 +202,8 @@ pdflang={%L}}")
         bibtex-autokey-titlewords-stretch 1
         bibtex-autokey-titleword-length 5)
 
-
-  (add-to-list 'org-latex-default-packages-alist '("" "natbib" "") t)
+  (add-to-list 'org-latex-default-packages-alist '("sort&compress,numbers" "natbib" "") t)
+  (add-to-list 'org-latex-default-packages-alist '("" "babel" "") nil)
   
   (require 'org-ref)
   (require 'org-ref-pdf)
@@ -260,8 +272,8 @@ pdflang={%L}}")
            (racer-mode . eldoc-mode))))
 
 (when (eq system-type 'windows-nt)
-    (use-package powershell
-      :ensure t))
+  (use-package powershell
+    :ensure t))
 
 (use-package json-mode
   :ensure t)
@@ -306,9 +318,35 @@ pdflang={%L}}")
 (use-package matlab-mode
   :ensure t
   :mode (("\\.m\\'" . matlab-mode))
+  :hook turn-off-auto-fill
   :init
   (setq matlab-shell-command "matlab")
-  (setq matlab-indent-function t))
+  (setq matlab-indent-function 0)
+  :config
+  (setq matlab-auto-fill nil))
+
+
+;; Markdown
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))
+
+(use-package julia-mode
+  :ensure t
+  :mode (("\\.jl\\'" . julia-mode))
+  :config
+  (use-package julia-shell
+    :ensure t
+    :config
+    (require 'julia-shell)
+    (defun my-julia-mode-hooks ()
+      (require 'julia-shell-mode))
+    (add-hook 'julia-mode-hook 'my-julia-mode-hooks)
+    (define-key julia-mode-map (kbd "C-c C-c") 'julia-shell-run-region-or-line)
+    (define-key julia-mode-map (kbd "C-c C-s") 'julia-shell-save-and-go)))
 
 ;;;
-
