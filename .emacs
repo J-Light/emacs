@@ -218,8 +218,17 @@
   (require 'org-ref-pdf)
   (require 'org-ref-url-utils))
 
+;; LaTeX
+(use-package auctex
+  :defer t
+  :ensure t)
+
+(use-package cdlatex
+  :ensure t
+  :hook (latex-mode . turn-on-cdlatex))
 
 ;; Nastran Mode
+
 (use-package nastran-mode
   :load-path "~/.emacs.d/nastran-mode"
   :mode "\\.bdf\\'")
@@ -244,7 +253,9 @@
     (electric-pair-mode 1)))
 
 (use-package php-mode
-  :ensure t)
+  :ensure t
+  :init
+  (irony-mode 0))
 
 ;; Rust Languages
 (use-package rust-mode
