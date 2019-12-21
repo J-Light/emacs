@@ -28,6 +28,7 @@
 (setq-default indent-tabs-mode nil)
 (defalias 'yes-or-no-p 'y-or-n-p)
 (put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
 (menu-bar-mode 0)
 (when (display-graphic-p)
   (tool-bar-mode 0))
@@ -76,21 +77,30 @@
 (eval-when-compile
   (require 'use-package))
 
-                                        ; Global Settings
-(when (display-graphic-p)
-  (use-package smart-mode-line
-    :ensure t
-    :init
-    (sml/setup)))
+;;                                         ; Global Settings
+(when (eq system-type 'windows-nt)
+  (setq exec-path (append exec-path '("C:/unix/bin"))))
+
+;; (when (display-graphic-p)
+;;   (use-package smart-mode-line
+;;     :ensure t
+;;     :init
+;;     (sml/setup)))
 
 (use-package elmacro
   :ensure t)
 
 (use-package eldoc
-    :ensure t)
+  :ensure t)
 
 (use-package iedit
   :ensure t)
+
+(use-package projectile
+  :ensure t
+  :config (projectile-mode 1)
+  :bind-keymap
+  ("C-c p" . projectile-command-map))
 
 (use-package vlf
   :ensure t
@@ -106,8 +116,7 @@
   (google-this-mode 1))
 
 (use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
+  :ensure t)
 
 ;; company
 (use-package company
@@ -119,13 +128,18 @@
 
 (use-package ispell
   :config
-  (setq-default ispell-dictionary "british")
+  (setq ispell-local-dictionary "en_US")
+  (setq ispell-local-dictionary-alist
+        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+        '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
   (setq-default ispell-highlight-face (quote flyspell-incorrect))
+  (ispell-change-dictionary "en_US" t)
   (if (eq system-type 'windows-nt)
-      (setq-default ispell-program-name "C:/Program Files (x86)/Aspell/bin/aspell.exe")))
+      (setq-default ispell-program-name "c:/hunspell/hunspell.exe")))
 
 
-                                        ;Languages
+;;                                         ;Languages
 ;; NXML Settings
 (use-package nxml-mode
   :config
@@ -140,6 +154,7 @@
   :init
   (require 'ox-latex)
   (require 'ox-extra)
+  
   (add-to-list 'org-latex-classes
                '("aiaa"
                  "\\documentclass[]{new-aiaa}"
@@ -181,16 +196,17 @@
     :bind (("C-c C-]" . org-ref-helm-insert-label-link)
            ("C-c M-]" . org-ref-helm-insert-ref-link))
     :init
-    (setq org-ref-bibliography-notes
-          (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
-          org-ref-default-bibliography
-          '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
-          org-ref-pdf-directory
-          (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
-    
-    (unless (file-exists-p org-ref-pdf-directory)
-      (make-directory org-ref-pdf-directory t)))
-  (setq org-src-fontify-natively t
+    (let ((refpath (getenv "MY_ORG_REF")))
+      (unless (eq refpath nil)
+        (setq org-ref-bibliography-notes
+              (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
+              org-ref-default-bibliography
+              '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
+              org-ref-pdf-directory
+              (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
+        (unless (file-exists-p org-ref-pdf-directory)
+          (make-directory org-ref-pdf-directory t)))))
+    (setq org-src-fontify-natively t
         org-confirm-babel-evaluate nil
         org-src-preserve-indentation t)
 
@@ -211,7 +227,7 @@
         bibtex-autokey-titlewords-stretch 1
         bibtex-autokey-titleword-length 5)
 
-  ;(add-to-list 'org-latex-default-packages-alist '("sort&compress,numbers" "natbib" "") t)
+  ;;(add-to-list 'org-latex-default-packages-alist '("sort&compress,numbers" "natbib" "") t)
   (add-to-list 'org-latex-default-packages-alist '("" "babel" "") nil)
   
   (require 'org-ref)
@@ -265,12 +281,12 @@
   (setq rust-format-on-save t))
 
 (use-package racer
-    :ensure t
-    :hook ((rust-mode . racer-mode)
-           (racer-mode . eldoc-mode)
-           (racer-mode . company-mode))
-    :init
-    (add-hook 'racer-mode-hook #'company-mode))
+  :ensure t
+  :hook ((rust-mode . racer-mode)
+         (racer-mode . eldoc-mode)
+         (racer-mode . company-mode))
+  :init
+  (add-hook 'racer-mode-hook #'company-mode))
 
 (use-package flycheck-rust
   :ensure t
@@ -292,16 +308,21 @@
 
 (use-package irony
   :ensure t
-  :hook ((objc-mode . irony-mode)
-         (c++-mode . irony-mode)
-         (c-mode . irony-mode)
-         (irony-mode . irony-cdb-autosetup-compile-options))
+  :hook ((irony-mode . irony-cdb-autosetup-compile-options))
   :config
   (when (eq system-type 'windows-nt)
     (when (boundp 'w32-pipe-read-delay)
       (setq w32-pipe-read-delay 0))
     (when (boundp 'w32-pipe-buffer-size)
       (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
+  :init
+  (defun my-irony-mode-on ()
+    ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
+    (when (member major-mode irony-supported-major-modes)
+      (irony-mode 1)))
+  (add-hook 'c++-mode-hook 'my-irony-mode-on)
+  (add-hook 'c-mode-hook 'my-irony-mode-on)
+  (add-hook 'objc-mode-hook 'my-irony-mode-on)
   (use-package company-irony
     :ensure t
     :hook (irony-mode . company-irony-setup-begin-commands)
@@ -331,8 +352,8 @@
   (venv-initialize-interactive-shells)
   (venv-initialize-eshell)
   (when (memq system-type '(windows-nt ms-dos))
-    (setq venv-location (expand-file-name "~/Envs")))
-  (setq python-environment-directory venv-location))
+    (setq venv-location (expand-file-name "~/Envs"))))
+;; (setq python-environment-directory venv-location))
 
 ;; Matlab
 (use-package matlab-mode
