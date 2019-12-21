@@ -88,8 +88,9 @@
 ;;     (sml/setup)))
 
 (use-package zenburn
-  :ensure t)
-(load-theme 'zenburn t)
+  :ensure t
+  :init
+  (load-theme 'zenburn t))
 
 (use-package elmacro
   :ensure t)
