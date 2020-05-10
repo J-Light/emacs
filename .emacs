@@ -87,10 +87,46 @@
 ;;     :init
 ;;     (sml/setup)))
 
-(use-package zenburn
+;; (use-package zenburn
+;;   :ensure t
+;;   :init
+;;   (load-theme 'zenburn t))
+
+(use-package origami
+  :ensure t
+  :commands (origami-mode)
+  :bind (:map origami-mode-map
+              ("C-c o :" . origami-recursively-toggle-node)
+              ("C-c o a" . origami-toggle-all-nodes)
+              ("C-c o t" . origami-toggle-node)
+              ("C-c o o" . origami-show-only-node)
+              ("C-c o u" . origami-undo)
+              ("C-c o U" . origami-redo)
+              ("C-c o C-r" . origami-reset)
+              )
+  :config
+  (setq origami-show-fold-header t)
+  ;; The python parser currently doesn't fold if/for/etc. blocks, which is
+  ;; something we want. However, the basic indentation parser does support
+  ;; this with one caveat: you must toggle the node when your cursor is on
+  ;; the line of the if/for/etc. statement you want to collapse. You cannot
+  ;; fold the statement by toggling in the body of the if/for/etc.
+  (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
+  :init
+  (add-hook 'prog-mode-hook 'origami-mode)
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rainbow Delimiters -  have delimiters be colored by their depth
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package rainbow-delimiters
   :ensure t
   :init
-  (load-theme 'zenburn t))
+  (eval-when-compile
+    ;; Silence missing function warnings
+    (declare-function rainbow-delimiters-mode "rainbow-delimiters.el"))
+  (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+
 
 (use-package elmacro
   :ensure t)
@@ -150,6 +186,18 @@
   :config
   (setq nxml-child-indent 4)
   (setq nxml-outline-child-indent 4))
+
+(use-package yaml-mode
+  :ensure t)
+
+(use-package flycheck-yamllint
+  :ensure t
+  :defer t
+  :init
+  (progn
+    (eval-after-load 'flycheck
+      '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
+
 
 ;; Org Mode
 (use-package org-plus-contrib
@@ -241,8 +289,7 @@
 
 ;; LaTeX
 (use-package auctex
-  :defer t
-  :ensure t)
+  :defer t)
 
 (use-package cdlatex
   :ensure t
@@ -311,6 +358,12 @@
 (use-package cmake-mode
   :ensure t)
 
+(use-package cmake-ide
+  :ensure t
+  :init
+  (cmake-ide-setup))
+
+
 (use-package irony
   :ensure t
   :hook ((irony-mode . irony-cdb-autosetup-compile-options))
@@ -345,7 +398,7 @@
 
 (use-package company-jedi
   :ensure t
-  :config
+  :init
   (add-to-list 'company-backends 'company-jedi))
 
 (when (memq system-type '(windows-nt ms-dos))
