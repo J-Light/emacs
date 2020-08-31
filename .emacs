@@ -95,15 +95,13 @@
 (use-package origami
   :ensure t
   :commands (origami-mode)
-  :bind (:map origami-mode-map
-              ("C-c o :" . origami-recursively-toggle-node)
-              ("C-c o a" . origami-toggle-all-nodes)
-              ("C-c o t" . origami-toggle-node)
-              ("C-c o o" . origami-show-only-node)
-              ("C-c o u" . origami-undo)
-              ("C-c o U" . origami-redo)
-              ("C-c o C-r" . origami-reset)
-              )
+  :bind (("C-c TAB" . origami-recursively-toggle-node)
+         ("C-c o a" . origami-toggle-all-nodes)
+         ("C-c o TAB" . origami-toggle-node)
+         ("C-c o o" . origami-show-only-node)
+         ("C-c o u" . origami-undo)
+         ("C-c o U" . origami-redo)
+         ("C-c o C-r" . origami-reset))
   :config
   (setq origami-show-fold-header t)
   ;; The python parser currently doesn't fold if/for/etc. blocks, which is
@@ -113,8 +111,7 @@
   ;; fold the statement by toggling in the body of the if/for/etc.
   (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
   :init
-  (add-hook 'prog-mode-hook 'origami-mode)
-  )
+  (global-origami-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rainbow Delimiters -  have delimiters be colored by their depth
@@ -178,6 +175,10 @@
   (ispell-change-dictionary "en_US" t)
   (if (eq system-type 'windows-nt)
       (setq-default ispell-program-name "c:/hunspell/hunspell.exe")))
+
+                                        ;Configurations
+(use-package nginx-mode
+  :ensure t)
 
 
 ;;                                         ;Languages
@@ -393,7 +394,7 @@
 
 ;; Python Settings
 (use-package python-mode
-  :hook (python-mode . flycheck-mode)
+  :hook ((python-mode . flycheck-mode))
   :commands company-complete)
 
 (use-package company-jedi
@@ -406,12 +407,11 @@
 
 (use-package virtualenvwrapper
   :ensure t
-  :init
-  (venv-initialize-interactive-shells)
-  (venv-initialize-eshell)
+  :config
   (when (memq system-type '(windows-nt ms-dos))
-    (setq venv-location (expand-file-name "~/Envs"))))
-;; (setq python-environment-directory venv-location))
+    (setq venv-location (expand-file-name "~/Envs")))
+  (venv-initialize-interactive-shells)
+  (venv-initialize-eshell))
 
 ;; Matlab
 (use-package matlab-mode
