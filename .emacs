@@ -182,6 +182,10 @@
 
 
 ;;                                         ;Languages
+;; Dockerfile
+(use-package dockerfile-mode
+  :ensure t)
+
 ;; NXML Settings
 (use-package nxml-mode
   :config
