@@ -289,7 +289,6 @@
   (add-to-list 'org-latex-default-packages-alist '("" "babel" "") nil)
   
   (require 'org-ref)
-  (require 'org-ref-pdf)
   (require 'org-ref-url-utils))
 
 ;; LaTeX
