@@ -106,6 +106,13 @@
   :ensure t)
 
 
+(use-package flymake-shellcheck
+  :ensure t
+  :commands flymake-shellcheck-load
+  :init
+  (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
+
+
 ;;                                         ;Languages
 ;; Dockerfile
 (use-package dockerfile-mode
