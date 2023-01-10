@@ -2,13 +2,8 @@
 ;;; Commentary:
 ;;;
 (require 'package)
-(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                    (not (gnutls-available-p))))
-       (proto (if no-ssl "http" "https")))
-  (add-to-list 'package-archives (cons "org"   (concat proto "://orgmode.org/elpa/")) t)
-  (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t)
-  (when (< emacs-major-version 24)
-    (add-to-list 'package-archives '("gnu" . (concat proto "://elpa.gnu.org/packages/")))))
+(add-to-list 'package-archives (cons "org"   "https://orgmode.org/elpa/") t)
+(add-to-list 'package-archives (cons "melpa" "https://melpa.org/packages/") t)
 
 (package-initialize)
 
@@ -35,39 +30,6 @@
 
 ;;; Code:
 ;; Essential Lisp macros
-(defun reb-query-replace (to-string)
-  "Replace TO-STRING re from point with `query-replace-regexp'."
-  (interactive
-   (progn (barf-if-buffer-read-only)
-          (list (query-replace-read-to (reb-target-binding reb-regexp)
-                                       "Query replace"  t))))
-  (with-current-buffer reb-target-buffer
-    (query-replace-regexp (reb-target-binding reb-regexp) to-string)))
-
-
-(defun clean-org-refs ()
-  "Clean UTF-8 strings."
-  (interactive)
-  (goto-char (point-min))
-  (while (re-search-forward "–" nil t)
-    (replace-match "-")))
-
-
-(defun pdf-paste-title ()
-  "Paste a multiline title from a pdf."
-  (interactive)
-  (generate-new-buffer "*PDFpastetemp*")
-  (switch-to-buffer "*PDFpastetemp*")
-  (yank nil)
-  (goto-char 0)
-  (perform-replace "\n" " " nil nil nil)
-  (goto-char 0)
-  (perform-replace ":" " -" nil nil nil)
-  (goto-char 0)
-  (kill-region nil nil 1)
-  (kill-buffer)
-  (yank nil))
-
 
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
@@ -80,17 +42,6 @@
 ;;                                         ; Global Settings
 (when (eq system-type 'windows-nt)
   (setq exec-path (append exec-path '("C:/unix/bin"))))
-
-;; (when (display-graphic-p)
-;;   (use-package smart-mode-line
-;;     :ensure t
-;;     :init
-;;     (sml/setup)))
-
-;; (use-package zenburn
-;;   :ensure t
-;;   :init
-;;   (load-theme 'zenburn t))
 
 (use-package origami
   :ensure t
@@ -128,17 +79,8 @@
 (use-package elmacro
   :ensure t)
 
-(use-package eldoc
-  :ensure t)
-
 (use-package iedit
   :ensure t)
-
-(use-package projectile
-  :ensure t
-  :config (projectile-mode 1)
-  :bind-keymap
-  ("C-c p" . projectile-command-map))
 
 (use-package vlf
   :ensure t
@@ -147,11 +89,6 @@
 
 (use-package uuidgen
   :ensure t)
-
-(use-package google-this
-  :ensure t
-  :config
-  (google-this-mode 1))
 
 (use-package flycheck
   :ensure t)
@@ -163,18 +100,6 @@
   (global-company-mode)
   :config
   (setq company-dabbrev-downcase nil))
-
-(use-package ispell
-  :config
-  (setq ispell-local-dictionary "en_US")
-  (setq ispell-local-dictionary-alist
-        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
-        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
-        '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
-  (setq-default ispell-highlight-face (quote flyspell-incorrect))
-  (ispell-change-dictionary "en_US" t)
-  (if (eq system-type 'windows-nt)
-      (setq-default ispell-program-name "c:/hunspell/hunspell.exe")))
 
                                         ;Configurations
 (use-package nginx-mode
@@ -216,86 +141,13 @@
   :hook (org-mode . turn-on-flyspell)
   :init
   (require 'ox-latex)
-  (require 'ox-extra)
-  
-  (add-to-list 'org-latex-classes
-               '("aiaa"
-                 "\\documentclass[]{new-aiaa}"
-                 ("\\section{%s}" . "\\section*{%s}")
-                 ("\\subsection{%s}" . "\\subsection*{%s}")
-                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-  (add-to-list 'org-latex-classes
-               '("elsevier"
-                 "\\documentclass[]{elsarticle}"
-                 ("\\section{%s}" . "\\section*{%s}")
-                 ("\\subsection{%s}" . "\\subsection*{%s}")
-                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-  (ox-extras-activate '(latex-header-blocks ignore-headlines))
+  (require 'ox-extra)  
   (setq org-tags-column -72)
   (setf org-highlight-latex-and-related '(latex))
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-  (setq org-latex-hyperref-template
-        (concat
-         "\\hypersetup{colorlinks,\n"
-         "allcolors=black,\n"
-         "bookmarksopen=true,\n"
-         "pdfauthor={%a},\n"
-         "pdftitle={%t},\n"
-         "pdfkeywords={%k},\n"
-         "pdfsubject={%d},\n"
-         "pdfcreator={%c}}\n\n"))
-  ;; (setq org-latex-default-packages-alist
-  ;;     (append
-  ;;      (delq(rassoc '("hyperref" nil) org-latex-default-packages-alist)
-  ;;           org-latex-default-packages-alist)
-  ;;      '(("colorlinks,citecolor=blue,linktocpage=true" "hyperref" nil))))
-
-  (use-package org-ref
-    :ensure t
-    :bind (("C-c C-]" . org-ref-helm-insert-label-link)
-           ("C-c M-]" . org-ref-helm-insert-ref-link))
-    :init
-    (let ((refpath (getenv "MY_ORG_REF")))
-      (unless (eq refpath nil)
-        (setq org-ref-bibliography-notes
-              (concat (file-name-as-directory (getenv "MY_ORG_REF")) "notes.org")
-              org-ref-default-bibliography
-              '((concat (file-name-as-directory (getenv "MY_ORG_REF")) "references.bib"))
-              org-ref-pdf-directory
-              (concat (file-name-as-directory (getenv "MY_ORG_REF")) "bibtex-pdfs"))
-        (unless (file-exists-p org-ref-pdf-directory)
-          (make-directory org-ref-pdf-directory t)))))
-    (setq org-src-fontify-natively t
-        org-confirm-babel-evaluate nil
-        org-src-preserve-indentation t)
 
   (org-babel-do-load-languages
-   'org-babel-load-languages '((python . t)))
-
-  (setq org-latex-pdf-process
-        '("pdflatex -interaction nonstopmode -output-directory %o %f"
-          "bibtex %b"
-          "pdflatex -interaction nonstopmode -output-directory %o %f"
-          "pdflatex -interaction nonstopmode -output-directory %o %f"))
-
-  (setq bibtex-autokey-year-length 4
-        bibtex-autokey-name-year-separator "-"
-        bibtex-autokey-year-title-separator "-"
-        bibtex-autokey-titleword-separator "-"
-        bibtex-autokey-titlewords 2
-        bibtex-autokey-titlewords-stretch 1
-        bibtex-autokey-titleword-length 5)
-
-  ;;(add-to-list 'org-latex-default-packages-alist '("sort&compress,numbers" "natbib" "") t)
-  (add-to-list 'org-latex-default-packages-alist '("" "babel" "") nil)
-  
-  (require 'org-ref)
-  (require 'org-ref-pdf)
-  (require 'org-ref-url-utils))
+   'org-babel-load-languages '((python . t))))
 
 ;; LaTeX
 (use-package auctex
@@ -304,19 +156,6 @@
 (use-package cdlatex
   :ensure t
   :hook (latex-mode . turn-on-cdlatex))
-
-;; Nastran Mode
-
-(use-package nastran-mode
-  :load-path "~/.emacs.d/nastran-mode"
-  :mode "\\.bdf\\'")
-
-;; ANSYS Mode
-(use-package ansys-mode
-  :load-path "~/.emacs.d/ansys-mode"
-  :mode (("\\.mac\\'" . ansys-mode)
-	 ("\\.inp\\'" . ansys-mode)
-	 ("\\.anf$" . ansys-mode)))
 
 (use-package scheme
   :mode (("\\.jou\\'" . scheme-mode)))
@@ -363,7 +202,6 @@
 (use-package json-mode
   :ensure t)
 
-
 ;; C++
 (use-package cmake-mode
   :ensure t)
@@ -372,7 +210,6 @@
   :ensure t
   :init
   (cmake-ide-setup))
-
 
 (use-package irony
   :ensure t
@@ -399,7 +236,6 @@
   (use-package flycheck-irony
     :ensure t
     :hook (flycheck-mode . flycheck-irony-setup)))
-
 
 ;; Python Settings
 (use-package python-mode
