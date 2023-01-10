@@ -193,7 +193,8 @@
   (setq nxml-outline-child-indent 4))
 
 (use-package yaml-mode
-  :ensure t)
+  :ensure t
+  :mode "\\.fcc\\'")
 
 (use-package flycheck-yamllint
   :ensure t
@@ -203,6 +204,10 @@
     (eval-after-load 'flycheck
       '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
 
+(use-package flymake-shellcheck
+  :commands flymake-shellcheck-load
+  :init
+  (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
 ;; Org Mode
 (use-package org-plus-contrib
