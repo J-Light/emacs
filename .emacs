@@ -55,11 +55,6 @@
          ("C-c o C-r" . origami-reset))
   :config
   (setq origami-show-fold-header t)
-  ;; The python parser currently doesn't fold if/for/etc. blocks, which is
-  ;; something we want. However, the basic indentation parser does support
-  ;; this with one caveat: you must toggle the node when your cursor is on
-  ;; the line of the if/for/etc. statement you want to collapse. You cannot
-  ;; fold the statement by toggling in the body of the if/for/etc.
   (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
   :init
   (global-origami-mode))
@@ -75,6 +70,8 @@
     (declare-function rainbow-delimiters-mode "rainbow-delimiters.el"))
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
+(use-package toml-mode
+  :ensure t)
 
 (use-package elmacro
   :ensure t)
@@ -104,7 +101,6 @@
                                         ;Configurations
 (use-package nginx-mode
   :ensure t)
-
 
 (use-package flymake-shellcheck
   :ensure t
