@@ -77,6 +77,7 @@
   :ensure t)
 
 (use-package iedit
+  :bind ("C-;" . iedit-mode)
   :ensure t)
 
 (use-package vlf
