@@ -18,18 +18,22 @@
 (setq inhibit-startup-screen t)
 (setq initial-scratch-message nil)
 (setq backup-inhibited t)
+
 (setq auto-save-default nil)
 (setq ring-bell-function #'ignore)
 (setq-default indent-tabs-mode nil)
+
 (defalias 'yes-or-no-p 'y-or-n-p)
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
+(global-display-line-numbers-mode 1)
 (menu-bar-mode 0)
+
 (when (display-graphic-p)
   (tool-bar-mode 0))
+(setq warning-suppress-log-types '((comp)))
+(setq warning-suppress-types '((comp)))
 
-;;; Code:
-;; Essential Lisp macros
 
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
@@ -42,6 +46,29 @@
 ;;                                         ; Global Settings
 (when (eq system-type 'windows-nt)
   (setq exec-path (append exec-path '("C:/unix/bin"))))
+
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode))
+
+(use-package lsp-mode
+  :ensure t
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (
+         (sh-mode . lsp)
+         (typescript-ts-mode . lsp)
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+;; optionally
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
+(use-package lsp-treemacs
+  :ensure t
+  :commands lsp-treemacs-errors-list)
 
 (use-package origami
   :ensure t
@@ -59,9 +86,6 @@
   :init
   (global-origami-mode))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Rainbow Delimiters -  have delimiters be colored by their depth
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package rainbow-delimiters
   :ensure t
   :init
@@ -91,13 +115,16 @@
 (use-package flycheck
   :ensure t)
 
-;; company
 (use-package company
   :ensure t
   :init
   (global-company-mode)
   :config
   (setq company-dabbrev-downcase nil))
+
+(use-package company-box
+  :ensure t
+  :hook (company-mode . company-box-mode))
 
                                         ;Configurations
 (use-package nginx-mode
@@ -109,13 +136,13 @@
   :init
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-
-;;                                         ;Languages
-;; Dockerfile
+                                         ;Languages
 (use-package dockerfile-mode
   :ensure t)
 
-;; NXML Settings
+(use-package typescript-ts-mode
+  :mode "\\.ts\\'")
+
 (use-package nxml-mode
   :config
   (setq nxml-child-indent 4)
@@ -125,20 +152,19 @@
   :ensure t
   :mode "\\.fcc\\'")
 
-(use-package flycheck-yamllint
-  :ensure t
-  :defer t
-  :init
-  (progn
-    (eval-after-load 'flycheck
-      '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
+;; (use-package flycheck-yamllint
+;;   :ensure t
+;;   :defer t
+;;   :init
+;;   (progn
+;;     (eval-after-load 'flycheck
+;;       '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
 
 (use-package flymake-shellcheck
   :commands flymake-shellcheck-load
   :init
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-;; Org Mode
 (use-package org-plus-contrib
   :ensure t
   :bind ("C-c i" . org-fill-paragraph)
@@ -153,7 +179,6 @@
   (org-babel-do-load-languages
    'org-babel-load-languages '((python . t))))
 
-;; LaTeX
 (use-package auctex
   :defer t)
 
@@ -164,43 +189,40 @@
 (use-package scheme
   :mode (("\\.jou\\'" . scheme-mode)))
 
-
                                         ;Languages
-(use-package csharp-mode
-  :ensure t
-  :init
-  (if (> emacs-major-version 24)
-      (electric-pair-local-mode 1)
-    (electric-pair-mode 1)))
+(if (> emacs-major-version 29)
+    (use-package csharp-mode
+      :ensure t
+      :init
+      (if (> emacs-major-version 24)
+          (electric-pair-local-mode 1)
+        (electric-pair-mode 1))))
 
 (use-package php-mode
-  :ensure t
-  :init
-  (irony-mode 0))
+  :ensure t)
 
-;; Rust Languages
 (use-package rust-mode
   :ensure t
   :mode "\\.rs\\'"
   :config
   (setq rust-format-on-save t))
 
-(use-package racer
-  :ensure t
-  :hook ((rust-mode . racer-mode)
-         (racer-mode . eldoc-mode)
-         (racer-mode . company-mode))
-  :init
-  (add-hook 'racer-mode-hook #'company-mode))
+;; (use-package racer
+;;   :ensure t
+;;   :hook ((rust-mode . racer-mode)
+;;          (racer-mode . eldoc-mode)
+;;          (racer-mode . company-mode))
+;;   :init
+;;   (add-hook 'racer-mode-hook #'company-mode))
 
-(use-package flycheck-rust
-  :ensure t
-  :hook (flycheck-mode . flycheck-rust-setup))
+;; (use-package flycheck-rust
+;;   :ensure t
+;;   :hook (flycheck-mode . flycheck-rust-setup))
 
 ;; PowerShell
-(when (eq system-type 'windows-nt)
-  (use-package powershell
-    :ensure t))
+
+(use-package powershell
+  :ensure t)
 
 ;; JSON Model
 (use-package json-mode
@@ -215,41 +237,40 @@
   :init
   (cmake-ide-setup))
 
-(use-package irony
-  :ensure t
-  :hook ((irony-mode . irony-cdb-autosetup-compile-options))
-  :config
-  (when (eq system-type 'windows-nt)
-    (when (boundp 'w32-pipe-read-delay)
-      (setq w32-pipe-read-delay 0))
-    (when (boundp 'w32-pipe-buffer-size)
-      (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
-  :init
-  (defun my-irony-mode-on ()
-    ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
-    (when (member major-mode irony-supported-major-modes)
-      (irony-mode 1)))
-  (add-hook 'c++-mode-hook 'my-irony-mode-on)
-  (add-hook 'c-mode-hook 'my-irony-mode-on)
-  (add-hook 'objc-mode-hook 'my-irony-mode-on)
-  (use-package company-irony
-    :ensure t
-    :hook (irony-mode . company-irony-setup-begin-commands)
-    :config
-    (add-to-list 'company-backends 'company-irony))
-  (use-package flycheck-irony
-    :ensure t
-    :hook (flycheck-mode . flycheck-irony-setup)))
+;; (use-package irony
+;;   :ensure t
+;;   :hook ((irony-mode . irony-cdb-autosetup-compile-options))
+;;   :config
+;;   (when (eq system-type 'windows-nt)
+;;     (when (boundp 'w32-pipe-read-delay)
+;;       (setq w32-pipe-read-delay 0))
+;;     (when (boundp 'w32-pipe-buffer-size)
+;;       (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
+;;   :init
+;;   (defun my-irony-mode-on ()
+;;     ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
+;;     (when (member major-mode irony-supported-major-modes)
+;;       (irony-mode 1)))
+;;   (add-hook 'c++-mode-hook 'my-irony-mode-on)
+;;   (add-hook 'c-mode-hook 'my-irony-mode-on)
+;;   (add-hook 'objc-mode-hook 'my-irony-mode-on)
+;;   (use-package company-irony
+;;     :ensure t
+;;     :hook (irony-mode . company-irony-setup-begin-commands)
+;;     :config
+;;     (add-to-list 'company-backends 'company-irony))
+;;   (use-package flycheck-irony
+;;     :ensure t
+;;     :hook (flycheck-mode . flycheck-irony-setup)))
 
-;; Python Settings
 (use-package python-mode
   :hook ((python-mode . flycheck-mode))
   :commands company-complete)
 
-(use-package company-jedi
-  :ensure t
-  :init
-  (add-to-list 'company-backends 'company-jedi))
+;; (use-package company-jedi
+;;   :ensure t
+;;   :init
+;;   (add-to-list 'company-backends 'company-jedi))
 
 (when (memq system-type '(windows-nt ms-dos))
   (setq-default python-shell-completion-native-enable nil))
