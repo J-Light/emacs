@@ -47,6 +47,13 @@
 (when (eq system-type 'windows-nt)
   (setq exec-path (append exec-path '("C:/unix/bin"))))
 
+(use-package exec-path-from-shell
+  :ensure t
+  :init
+  ;; Check if Emacs is running in a graphical environment
+  (when (not (eq window-system nil))
+    (exec-path-from-shell-initialize)))
+
 (use-package which-key
   :ensure t
   :config
@@ -72,15 +79,19 @@
   :hook (
          (sh-mode . lsp)
          (typescript-ts-mode . lsp)
+				 (go-ts-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
-;; optionally
+; optionally
 (use-package lsp-ui
   :ensure t
   :commands lsp-ui-mode)
+
 (use-package lsp-treemacs
   :ensure t
+  :init
+  (setq lsp-treemacs-sync-mode 1)
   :commands lsp-treemacs-errors-list)
 
 (use-package origami
@@ -153,14 +164,26 @@
 (use-package dockerfile-mode
   :ensure t)
 
+;; Define a setup function for TypeScript mode
+(defun my-typescript-setup ()
+  "Custom configurations for TypeScript mode."
+  (setq-local tab-width 2)
+  (setq-local indent-tabs-mode nil)
+  (setq-local typescript-ts-mode-indent-offset 2))
+
 (use-package typescript-ts-mode
-  :mode "\\.ts\\'")
+  :mode "\\.ts\\'"
+	:hook (typescript-ts-mode . my-typescript-setup))
 
 (use-package go-ts-mode
+  :mode
+  "\\.go\\'"
+  ("go\\.mod\\'" . go-mod-ts-mode)
+  :custom
+  (indent-tabs-mode t)
   :config
-  (setq tab-width 4)
-  (setq go-ts-mode-indent-offset 4)
-  :mode "\\.mod\\'")
+  (setq-default tab-width 4)
+  (setq go-ts-mode-indent-offset 4))
 
 (use-package nxml-mode
   :config
@@ -169,7 +192,10 @@
 
 (use-package yaml-mode
   :ensure t
-  :mode "\\.fcc\\'")
+  :mode
+  "\\.fcc\\'"
+  "\\.bu\\'"
+  )
 
 ;; (use-package flycheck-yamllint
 ;;   :ensure t
