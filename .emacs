@@ -66,24 +66,40 @@
   (global-tree-sitter-mode)
   ;; you can easily see the difference tree-sitter-hl-mode makes for python, ts or tsx
   ;; by switching on and off
-  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode))
+  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode)
+  (add-to-list 'tree-sitter-major-mode-language-alist '(templ-ts-mode . templ))
+  )
 
 (use-package tree-sitter-langs
   :ensure t
   :after tree-sitter)
 
+(use-package templ-ts-mode
+  :ensure t)
+
 (use-package lsp-mode
   :ensure t
   :init
   (setq lsp-keymap-prefix "C-c l")
+  :config
+  (defvar lsp-templ-server-command '("templ" "lsp"))
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection
+									 (lambda () lsp-templ-server-command))
+					:activation-fn (lsp-activate-on "templ")
+					:major-modes '(templ-ts-mode)
+					:server-id 'templ-ls))
+  (add-to-list 'lsp-language-id-configuration '(templ-ts-mode . "templ"))
   :hook (
          (sh-mode . lsp)
          (typescript-ts-mode . lsp)
-				 (go-ts-mode . lsp)
+		 (go-ts-mode . lsp)
+		 (templ-ts-mode . lsp)
+		 (php-ts-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
-; optionally
+										; optionally
 (use-package lsp-ui
   :ensure t
   :commands lsp-ui-mode)
@@ -93,6 +109,12 @@
   :init
   (setq lsp-treemacs-sync-mode 1)
   :commands lsp-treemacs-errors-list)
+
+(use-package markdown-mode
+  :ensure t
+  :hook (markdown-mode . lsp)
+  :config
+  (require 'lsp-marksman))
 
 (use-package origami
   :ensure t
@@ -160,7 +182,7 @@
   :init
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-                                         ;Languages
+										;Languages
 (use-package dockerfile-mode
   :ensure t)
 
@@ -173,7 +195,7 @@
 
 (use-package typescript-ts-mode
   :mode "\\.ts\\'"
-	:hook (typescript-ts-mode . my-typescript-setup))
+  :hook (typescript-ts-mode . my-typescript-setup))
 
 (use-package go-ts-mode
   :mode
@@ -243,8 +265,16 @@
           (electric-pair-local-mode 1)
         (electric-pair-mode 1))))
 
-(use-package php-mode
-  :ensure t)
+;; (use-package php-mode
+;;   :ensure t)
+
+(use-package php-ts-mode
+  :init
+  :config
+  (use-package geben
+	:ensure t)
+  )
+
 
 (use-package rust-mode
   :ensure t
