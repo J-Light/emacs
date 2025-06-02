@@ -2,7 +2,6 @@
 ;;; Commentary:
 ;;;
 (require 'package)
-(add-to-list 'package-archives (cons "org"   "https://orgmode.org/elpa/") t)
 (add-to-list 'package-archives (cons "melpa" "https://melpa.org/packages/") t)
 
 (package-initialize)
@@ -74,9 +73,6 @@
   :ensure t
   :after tree-sitter)
 
-(use-package templ-ts-mode
-  :ensure t)
-
 (use-package lsp-mode
   :ensure t
   :init
@@ -95,14 +91,131 @@
          (typescript-ts-mode . lsp)
 		 (go-ts-mode . lsp)
 		 (templ-ts-mode . lsp)
-		 (php-ts-mode . lsp)
+		 ;; (php-ts-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
+
+(use-package templ-ts-mode
+  :ensure t)
 										; optionally
 (use-package lsp-ui
   :ensure t
   :commands lsp-ui-mode)
+
+(use-package projectile
+  :ensure t
+  :init
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
+
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :config
+  (progn
+    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay        0.5
+          treemacs-directory-name-transformer      #'identity
+          treemacs-display-in-side-window          t
+          treemacs-eldoc-display                   'simple
+          treemacs-file-event-delay                2000
+          treemacs-file-extension-regex            treemacs-last-period-regex-value
+          treemacs-file-follow-delay               0.2
+          treemacs-file-name-transformer           #'identity
+          treemacs-follow-after-init               t
+          treemacs-expand-after-init               t
+          treemacs-find-workspace-method           'find-for-file-or-pick-first
+          treemacs-git-command-pipe                ""
+          treemacs-goto-tag-strategy               'refetch-index
+          treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+          treemacs-hide-dot-git-directory          t
+          treemacs-indentation                     2
+          treemacs-indentation-string              " "
+          treemacs-is-never-other-window           nil
+          treemacs-max-git-entries                 5000
+          treemacs-missing-project-action          'ask
+          treemacs-move-files-by-mouse-dragging    t
+          treemacs-move-forward-on-expand          nil
+          treemacs-no-png-images                   nil
+          treemacs-no-delete-other-windows         t
+          treemacs-project-follow-cleanup          nil
+          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                        'left
+          treemacs-read-string-input               'from-child-frame
+          treemacs-recenter-distance               0.1
+          treemacs-recenter-after-file-follow      nil
+          treemacs-recenter-after-tag-follow       nil
+          treemacs-recenter-after-project-jump     'always
+          treemacs-recenter-after-project-expand   'on-distance
+          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+          treemacs-project-follow-into-home        nil
+          treemacs-show-cursor                     nil
+          treemacs-show-hidden-files               t
+          treemacs-silent-filewatch                nil
+          treemacs-silent-refresh                  nil
+          treemacs-sorting                         'alphabetic-asc
+          treemacs-select-when-already-in-treemacs 'move-back
+          treemacs-space-between-root-nodes        t
+          treemacs-tag-follow-cleanup              t
+          treemacs-tag-follow-delay                1.5
+          treemacs-text-scale                      nil
+          treemacs-user-mode-line-format           nil
+          treemacs-user-header-line-format         nil
+          treemacs-wide-toggle-width               70
+          treemacs-width                           35
+          treemacs-width-increment                 1
+          treemacs-width-is-initially-locked       t
+          treemacs-workspace-switch-cleanup        nil)
+
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode 'always)
+    (when treemacs-python-executable
+      (treemacs-git-commit-diff-mode t))
+
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))
+
+    (treemacs-hide-gitignored-files-mode nil))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t d"   . treemacs-select-directory)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+
+
+(use-package treemacs-projectile
+  :after (treemacs projectile)
+  :ensure t)
+
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once)
+  :ensure t)
+
+(use-package treemacs-magit
+  :after (treemacs magit)
+  :ensure t)
+
+;;(treemacs-start-on-boot)
+
 
 (use-package lsp-treemacs
   :ensure t
@@ -110,27 +223,28 @@
   (setq lsp-treemacs-sync-mode 1)
   :commands lsp-treemacs-errors-list)
 
+
 (use-package markdown-mode
   :ensure t
   :hook (markdown-mode . lsp)
   :config
   (require 'lsp-marksman))
 
-(use-package origami
-  :ensure t
-  :commands (origami-mode)
-  :bind (("C-c TAB" . origami-recursively-toggle-node)
-         ("C-c o a" . origami-toggle-all-nodes)
-         ("C-c o TAB" . origami-toggle-node)
-         ("C-c o o" . origami-show-only-node)
-         ("C-c o u" . origami-undo)
-         ("C-c o U" . origami-redo)
-         ("C-c o C-r" . origami-reset))
-  :config
-  (setq origami-show-fold-header t)
-  (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
-  :init
-  (global-origami-mode))
+;; ;; (use-package origami
+;; ;;   :ensure t
+;; ;;   :commands (origami-mode)
+;; ;;   :bind (("C-c TAB" . origami-recursively-toggle-node)
+;; ;;          ("C-c o a" . origami-toggle-all-nodes)
+;; ;;          ("C-c o TAB" . origami-toggle-node)
+;; ;;          ("C-c o o" . origami-show-only-node)
+;; ;;          ("C-c o u" . origami-undo)
+;; ;;          ("C-c o U" . origami-redo)
+;; ;;          ("C-c o C-r" . origami-reset))
+;; ;;   :config
+;; ;;   (setq origami-show-fold-header t)
+;; ;;   (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
+;; ;;   :init
+;; ;;   (global-origami-mode))
 
 (use-package rainbow-delimiters
   :ensure t
@@ -150,10 +264,10 @@
   :bind ("C-;" . iedit-mode)
   :ensure t)
 
-(use-package vlf
-  :ensure t
-  :config
-  (require 'vlf-setup))
+;; (use-package vlf
+;;   :ensure t
+;;   :config
+;;   (require 'vlf-setup))
 
 (use-package uuidgen
   :ensure t)
@@ -168,11 +282,11 @@
   :config
   (setq company-dabbrev-downcase nil))
 
-(use-package company-box
-  :ensure t
-  :hook (company-mode . company-box-mode))
+;; (use-package company-box
+;;   :ensure t
+;;   :hook (company-mode . company-box-mode))
 
-                                        ;Configurations
+;;                                         ;Configurations
 (use-package nginx-mode
   :ensure t)
 
@@ -182,20 +296,20 @@
   :init
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-										;Languages
+;; 										;Languages
 (use-package dockerfile-mode
   :ensure t)
 
-;; Define a setup function for TypeScript mode
-(defun my-typescript-setup ()
-  "Custom configurations for TypeScript mode."
-  (setq-local tab-width 2)
-  (setq-local indent-tabs-mode nil)
-  (setq-local typescript-ts-mode-indent-offset 2))
+;; ;; Define a setup function for TypeScript mode
+;; (defun my-typescript-setup ()
+;;   "Custom configurations for TypeScript mode."
+;;   (setq-local tab-width 2)
+;;   (setq-local indent-tabs-mode nil)
+;;   (setq-local typescript-ts-mode-indent-offset 2))
 
 (use-package typescript-ts-mode
-  :mode "\\.ts\\'"
-  :hook (typescript-ts-mode . my-typescript-setup))
+  :mode "\\.ts\\'")
+;;   :hook (typescript-ts-mode . my-typescript-setup))
 
 (use-package go-ts-mode
   :mode
@@ -227,54 +341,44 @@
 ;;     (eval-after-load 'flycheck
 ;;       '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
 
-(use-package flymake-shellcheck
-  :commands flymake-shellcheck-load
-  :init
-  (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
+;; (use-package flymake-shellcheck
+;;   :commands flymake-shellcheck-load
+;;   :init
+;;   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-(use-package org-plus-contrib
+(use-package org
   :ensure t
   :bind ("C-c i" . org-fill-paragraph)
   :hook (org-mode . turn-on-flyspell)
   :init
-  (require 'ox-latex)
-  (require 'ox-extra)  
   (setq org-tags-column -72)
   (setf org-highlight-latex-and-related '(latex))
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+  ;; (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 
   (org-babel-do-load-languages
    'org-babel-load-languages '((python . t))))
 
-(use-package auctex
-  :defer t)
-
-(use-package cdlatex
-  :ensure t
-  :hook (latex-mode . turn-on-cdlatex))
-
 (use-package scheme
   :mode (("\\.jou\\'" . scheme-mode)))
 
-                                        ;Languages
-(if (> emacs-major-version 29)
-    (use-package csharp-mode
-      :ensure t
-      :init
-      (if (> emacs-major-version 24)
-          (electric-pair-local-mode 1)
-        (electric-pair-mode 1))))
+;;                                         ;Languages
+;; (if (> emacs-major-version 29)
+;;     (use-package csharp-mode
+;;       :ensure t
+;;       :init
+;;       (if (> emacs-major-version 24)
+;;           (electric-pair-local-mode 1)
+;;         (electric-pair-mode 1))))
 
-;; (use-package php-mode
-;;   :ensure t)
+;; ;; (use-package php-mode
+;; ;;   :ensure t)
 
-(use-package php-ts-mode
-  :init
-  :config
-  (use-package geben
-	:ensure t)
-  )
-
+;; (use-package php-ts-mode
+;;   :init
+;;   :config
+;;   (use-package geben
+;; 	:ensure t)
+;;   )
 
 (use-package rust-mode
   :ensure t
@@ -282,17 +386,17 @@
   :config
   (setq rust-format-on-save t))
 
-;; (use-package racer
-;;   :ensure t
-;;   :hook ((rust-mode . racer-mode)
-;;          (racer-mode . eldoc-mode)
-;;          (racer-mode . company-mode))
-;;   :init
-;;   (add-hook 'racer-mode-hook #'company-mode))
+;; ;; (use-package racer
+;; ;;   :ensure t
+;; ;;   :hook ((rust-mode . racer-mode)
+;; ;;          (racer-mode . eldoc-mode)
+;; ;;          (racer-mode . company-mode))
+;; ;;   :init
+;; ;;   (add-hook 'racer-mode-hook #'company-mode))
 
-;; (use-package flycheck-rust
-;;   :ensure t
-;;   :hook (flycheck-mode . flycheck-rust-setup))
+;; ;; (use-package flycheck-rust
+;; ;;   :ensure t
+;; ;;   :hook (flycheck-mode . flycheck-rust-setup))
 
 ;; PowerShell
 
@@ -312,51 +416,51 @@
   :init
   (cmake-ide-setup))
 
-;; (use-package irony
-;;   :ensure t
-;;   :hook ((irony-mode . irony-cdb-autosetup-compile-options))
-;;   :config
-;;   (when (eq system-type 'windows-nt)
-;;     (when (boundp 'w32-pipe-read-delay)
-;;       (setq w32-pipe-read-delay 0))
-;;     (when (boundp 'w32-pipe-buffer-size)
-;;       (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
-;;   :init
-;;   (defun my-irony-mode-on ()
-;;     ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
-;;     (when (member major-mode irony-supported-major-modes)
-;;       (irony-mode 1)))
-;;   (add-hook 'c++-mode-hook 'my-irony-mode-on)
-;;   (add-hook 'c-mode-hook 'my-irony-mode-on)
-;;   (add-hook 'objc-mode-hook 'my-irony-mode-on)
-;;   (use-package company-irony
-;;     :ensure t
-;;     :hook (irony-mode . company-irony-setup-begin-commands)
-;;     :config
-;;     (add-to-list 'company-backends 'company-irony))
-;;   (use-package flycheck-irony
-;;     :ensure t
-;;     :hook (flycheck-mode . flycheck-irony-setup)))
+;; ;; (use-package irony
+;; ;;   :ensure t
+;; ;;   :hook ((irony-mode . irony-cdb-autosetup-compile-options))
+;; ;;   :config
+;; ;;   (when (eq system-type 'windows-nt)
+;; ;;     (when (boundp 'w32-pipe-read-delay)
+;; ;;       (setq w32-pipe-read-delay 0))
+;; ;;     (when (boundp 'w32-pipe-buffer-size)
+;; ;;       (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
+;; ;;   :init
+;; ;;   (defun my-irony-mode-on ()
+;; ;;     ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
+;; ;;     (when (member major-mode irony-supported-major-modes)
+;; ;;       (irony-mode 1)))
+;; ;;   (add-hook 'c++-mode-hook 'my-irony-mode-on)
+;; ;;   (add-hook 'c-mode-hook 'my-irony-mode-on)
+;; ;;   (add-hook 'objc-mode-hook 'my-irony-mode-on)
+;; ;;   (use-package company-irony
+;; ;;     :ensure t
+;; ;;     :hook (irony-mode . company-irony-setup-begin-commands)
+;; ;;     :config
+;; ;;     (add-to-list 'company-backends 'company-irony))
+;; ;;   (use-package flycheck-irony
+;; ;;     :ensure t
+;; ;;     :hook (flycheck-mode . flycheck-irony-setup)))
 
-(use-package python-mode
-  :hook ((python-mode . flycheck-mode))
-  :commands company-complete)
+;; (use-package python-mode
+;;   :hook ((python-mode . flycheck-mode))
+;;   :commands company-complete)
 
-;; (use-package company-jedi
-;;   :ensure t
-;;   :init
-;;   (add-to-list 'company-backends 'company-jedi))
+;; ;; (use-package company-jedi
+;; ;;   :ensure t
+;; ;;   :init
+;; ;;   (add-to-list 'company-backends 'company-jedi))
 
-(when (memq system-type '(windows-nt ms-dos))
-  (setq-default python-shell-completion-native-enable nil))
+;; (when (memq system-type '(windows-nt ms-dos))
+;;   (setq-default python-shell-completion-native-enable nil))
 
-(use-package virtualenvwrapper
-  :ensure t
-  :config
-  (when (memq system-type '(windows-nt ms-dos))
-    (setq venv-location (expand-file-name "~/Envs")))
-  (venv-initialize-interactive-shells)
-  (venv-initialize-eshell))
+;; ;; (use-package virtualenvwrapper
+;; ;;   :ensure t
+;; ;;   :config
+;; ;;   (when (memq system-type '(windows-nt ms-dos))
+;; ;;     (setq venv-location (expand-file-name "~/Envs")))
+;; ;;   (venv-initialize-interactive-shells)
+;; ;;   (venv-initialize-eshell))
 
 ;; Matlab
 (use-package matlab-mode
@@ -378,18 +482,19 @@
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))
 
-(use-package julia-mode
-  :ensure t
-  :mode (("\\.jl\\'" . julia-mode))
-  :config
-  (use-package julia-shell
-    :ensure t
-    :config
-    (require 'julia-shell)
-    (defun my-julia-mode-hooks ()
-      (require 'julia-shell-mode))
-    (add-hook 'julia-mode-hook 'my-julia-mode-hooks)
-    (define-key julia-mode-map (kbd "C-c C-c") 'julia-shell-run-region-or-line)
-    (define-key julia-mode-map (kbd "C-c C-s") 'julia-shell-save-and-go)))
+;; julia-ts-mode
+;; (use-package julia-mode
+;;   :ensure t
+;;   :mode (("\\.jl\\'" . julia-mode))
+;;   :config
+;;   (use-package julia-shell
+;;     :ensure t
+;;     :config
+;;     (require 'julia-shell)
+;;     (defun my-julia-mode-hooks ()
+;;       (require 'julia-shell-mode))
+;;     (add-hook 'julia-mode-hook 'my-julia-mode-hooks)
+;;     (define-key julia-mode-map (kbd "C-c C-c") 'julia-shell-run-region-or-line)
+;;     (define-key julia-mode-map (kbd "C-c C-s") 'julia-shell-save-and-go)))
 
-;;; .emacs ends here
+;; ;;; .emacs ends here
