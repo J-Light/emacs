@@ -300,16 +300,15 @@
 (use-package dockerfile-mode
   :ensure t)
 
-;; ;; Define a setup function for TypeScript mode
-;; (defun my-typescript-setup ()
-;;   "Custom configurations for TypeScript mode."
-;;   (setq-local tab-width 2)
-;;   (setq-local indent-tabs-mode nil)
-;;   (setq-local typescript-ts-mode-indent-offset 2))
-
 (use-package typescript-ts-mode
-  :mode "\\.ts\\'")
-;;   :hook (typescript-ts-mode . my-typescript-setup))
+  :mode "\\.ts\\'"
+  :hook (typescript-ts-mode . my/typescript-setup)
+  :config
+  (defun my/typescript-setup ()
+    "Ensure TypeScript uses tabs with 4-space width."
+    (setq-local indent-tabs-mode t)                          ;; Use tabs for indentation
+    (setq-local tab-width 4)                                 ;; Tabs appear as 4 spaces
+    (setq-local typescript-ts-mode-indent-offset 4)))        ;; Indentation level
 
 (use-package go-ts-mode
   :mode
