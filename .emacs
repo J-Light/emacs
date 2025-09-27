@@ -37,6 +37,7 @@
 (setq auto-save-default nil)
 (setq ring-bell-function #'ignore)
 (setq-default indent-tabs-mode nil)
+(setq-default tab-width 4)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (put 'upcase-region 'disabled nil)
@@ -48,7 +49,6 @@
   (tool-bar-mode 0))
 (setq warning-suppress-log-types '((comp)))
 (setq warning-suppress-types '((comp)))
-
 
                                         ; Global Settings
 (use-package exec-path-from-shell
@@ -226,22 +226,25 @@
   :config
   (require 'lsp-dockerfile-ls))
 
-(use-package typescript-ts-mode
-  :hook (typescript-ts-mode . lsp)
-  :config
-  (progn
-    (setq-local indent-tabs-mode t)                          ;; Use tabs for indentation
-    (setq-local tab-width 4)                                 ;; Tabs appear as 4 spaces
-    (setq-local typescript-ts-mode-indent-offset 4)))        ;; Indentation level
 
-    
+
+(use-package typescript-ts-mode
+  :mode (("\\.ts\\'" . typescript-ts-mode)
+         ("\\.tsx\\'" . tsx-ts-mode))
+  :init
+  (defun my-tabonly ()
+    "Set to tab mode"
+    (progn
+      (setq-local indent-tabs-mode t)
+      (setq-local tab-width 4)
+      (setq-local typescript-ts-mode-indent-offset 4)))
+  :hook ((typescript-ts-mode . lsp-deferred)
+         (tsx-ts-mode . lsp-deferred)
+		 (typescript-ts-mode . my-tabonly)))
+
+
 (use-package go-ts-mode
-  :hook (go-ts-mode . lsp)
-  :config
-  (progn
-    (setq-local indent-tabs-mode t)                          ;; Use tabs for indentation
-    (setq-local tab-width 4)                                 ;; Tabs appear as 4 spaces
-    (setq-local typescript-ts-mode-indent-offset 4)))        ;; Indentation level
+  :hook (go-ts-mode . lsp))
 
 (use-package yaml-ts-mode
   :mode (
