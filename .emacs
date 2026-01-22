@@ -22,6 +22,18 @@
 
 (straight-use-package 'use-package)
 
+(setq use-package-always-defer t)
+(setq use-package-expand-minimally t)
+
+;; Startup performance
+(setq gc-cons-threshold (* 50 1000 1000))
+(setq gc-cons-percentage 0.6)
+(setq read-process-output-max (* 1024 1024))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold (* 4 1000 1000))
+            (setq gc-cons-percentage 0.1)))
+
 ;; Bootstrap custom file settings
 (setq custom-file "~/.emacs.d/my-custom.el")
 (unless (file-exists-p custom-file)
@@ -49,21 +61,86 @@
   (tool-bar-mode 0))
 (setq warning-suppress-log-types '((comp)))
 (setq warning-suppress-types '((comp)))
+(setq native-comp-async-report-warnings-errors nil)
 
-                                        ; Global Settings
+;; Global Settings
+(use-package gcmh
+  :straight t
+  :ensure t
+  :demand t
+  :init
+  (gcmh-mode 1))
+
 (use-package exec-path-from-shell
   :straight t
   :ensure t
+  :if (memq window-system '(mac ns x pgtk))
+  :demand t
   :init
-  ;; Check if Emacs is running in a graphical environment
-  (when (not (eq window-system nil))
-    (exec-path-from-shell-initialize)))
+  (exec-path-from-shell-initialize))
 
 (use-package which-key
   :straight t
   :ensure t
+  :demand t
   :config
   (which-key-mode))
+
+(use-package direnv
+  :straight t
+  :ensure t
+  :demand t
+  :config
+  (direnv-mode))
+
+(use-package savehist
+  :demand t
+  :init
+  (savehist-mode 1))
+
+(use-package vertico
+  :straight t
+  :ensure t
+  :demand t
+  :init
+  (vertico-mode 1))
+
+(use-package orderless
+  :straight t
+  :ensure t
+  :init
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package marginalia
+  :straight t
+  :ensure t
+  :demand t
+  :init
+  (marginalia-mode 1))
+
+(use-package consult
+  :straight t
+  :ensure t
+  :bind (("C-s" . consult-line)
+         ("C-c h" . consult-history)
+         ("C-c m" . consult-mode-command)
+         ("C-c k" . consult-kmacro)
+         ("C-x b" . consult-buffer)
+         ("M-y" . consult-yank-pop)))
+
+(use-package embark
+  :straight t
+  :ensure t
+  :bind (("C-." . embark-act)
+         ("C-," . embark-dwim)
+         ("C-h B" . embark-bindings)))
+
+(use-package embark-consult
+  :straight t
+  :ensure t
+  :after (embark consult))
 
 (use-package rainbow-delimiters
   :straight t
@@ -82,8 +159,7 @@
 (use-package vlf
   :straight t
   :ensure t
-  :config
-  (require 'vlf-setup))
+  :commands vlf)
 
 (use-package uuidgen
   :straight t
@@ -98,24 +174,55 @@
   :ensure t)
 
 
-                                        ; LSP
+;; LSP
 (use-package lsp-mode
   :straight t
   :ensure t
   :init
   (setq lsp-keymap-prefix "C-c l")
-  :config
+  (setq lsp-idle-delay 0.5)
   :hook ((lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+  :commands (lsp lsp-deferred))
+
+(use-package dap-mode
+  :straight t
+  :ensure t
+  :after lsp-mode
+  :commands dap-debug
+  :config
+  (dap-auto-configure-mode 1)
+  (require 'dap-python))
 
 (use-package lsp-ui
   :straight t
   :ensure t
   :commands lsp-ui-mode)
 
-(use-package helm-lsp
+(use-package consult-lsp
   :straight t
-  :commands helm-lsp-workspace-symbol)
+  :ensure t
+  :commands consult-lsp-symbols)
+
+(use-package lsp-pyright
+  :straight t
+  :ensure t
+  :after lsp-mode
+  :init
+  (setq lsp-pyright-langserver-command
+        '("basedpyright-langserver" "--stdio"))
+  (setq lsp-pyright-auto-import-completions t)
+  (setq lsp-pyright-use-library-code-for-types t)
+  (setq lsp-pyright-typechecking-mode "basic"))
+
+(with-eval-after-load 'lsp-mode
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection
+                     (lambda ()
+                       (list "ruff" "server" "--stdio")))
+    :activation-fn (lsp-activate-on "python")
+    :add-on? t
+    :server-id 'ruff)))
 
 (use-package projectile
   :straight t
@@ -144,17 +251,20 @@
 (use-package company
   :straight t
   :ensure t
+  :demand t
   :init
   (global-company-mode)
   :config
   (setq company-dabbrev-downcase nil))
 
 (use-package company-box
-  :straight t  
+  :straight t
   :ensure t
+  :if (display-graphic-p)
   :hook (company-mode . company-box-mode))
 
 
+;; Project + UI
 (use-package treemacs
   :straight t
   :ensure t
@@ -187,7 +297,7 @@
         ("C-x t M-t" . treemacs-find-tag)))
 
 (use-package treemacs-projectile
-  :straight t  
+  :straight t
   :after (treemacs projectile)
   :ensure t)
 
@@ -209,20 +319,20 @@
   :commands lsp-treemacs-errors-list)
 ;; (treemacs-start-on-boot)
 
-; Major Modes
+;; Major Modes
 (use-package markdown-mode
   :straight t
   :ensure t
-  :hook (markdown-mode . lsp)
+  :hook (markdown-mode . lsp-deferred)
   :config
   (require 'lsp-marksman))
 
 
 (use-package toml-ts-mode
-  :hook (toml-ts-mode . lsp))
+  :hook (toml-ts-mode . lsp-deferred))
 
 (use-package dockerfile-ts-mode
-  :hook (dockerfile-ts-mode . lsp)
+  :hook (dockerfile-ts-mode . lsp-deferred)
   :config
   (require 'lsp-dockerfile-ls))
 
@@ -232,215 +342,32 @@
   :mode (("\\.ts\\'" . typescript-ts-mode)
          ("\\.tsx\\'" . tsx-ts-mode))
   :init
-  (defun my-tabonly ()
-    "Set to tab mode"
-    (progn
-      (setq-local indent-tabs-mode t)
-      (setq-local tab-width 4)
-      (setq-local typescript-ts-mode-indent-offset 4)))
+  (defun my-typescript-tabonly ()
+    "Set TypeScript buffers to tab mode."
+    (setq-local indent-tabs-mode t)
+    (setq-local tab-width 4)
+    (setq-local typescript-ts-mode-indent-offset 4))
   :hook ((typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode . lsp-deferred)
-		 (typescript-ts-mode . my-tabonly)))
+         (typescript-ts-mode . my-typescript-tabonly)))
 
 
 (use-package go-ts-mode
-  :hook (go-ts-mode . lsp))
+  :hook (go-ts-mode . lsp-deferred))
 
 (use-package yaml-ts-mode
   :mode (
          ("\\.fcc\\'" . yaml-ts-mode)
          ("\\.bu\\'" . yaml-ts-mode))
-  :hook (yaml-ts-mode . lsp))
+  :hook (yaml-ts-mode . lsp-deferred))
 
 (use-package json-ts-mode
-  :mode (("\\.json\\'" .  json-ts-mode))
-  :hook (json-ts-mode . lsp))
+  :mode (("\\.json\\'" . json-ts-mode))
+  :hook (json-ts-mode . lsp-deferred))
 
 
 (use-package python-ts-mode
-  :mode (("\\.py\\'" .  json-ts-mode))
-  :hook (python-ts-mode . lsp))
-
-
-;; ;;                                         ;configurations
-;; (use-package nginx-mode
-;;   :ensure t)
-
-;; (use-package flymake-shellcheck
-;;   :ensure t
-;;   :commands flymake-shellcheck-load
-;;   :init
-;;   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
-
-;; ;;                                                                           ;Languages
-
-
-
-;; (use-package nxml-mode
-;;   :config
-;;   (setq nxml-child-indent 4)
-;;   (setq nxml-outline-child-indent 4))
-
-
-;; ;; (use-package flycheck-yamllint
-;; ;;   :ensure t
-;; ;;   :defer t
-;; ;;   :init
-;; ;;   (progn
-;; ;;     (eval-after-load 'flycheck
-;; ;;       '(add-hook 'flycheck-mode-hook 'flycheck-yamllint-setup))))
-
-;; ;; (use-package flymake-shellcheck
-;; ;;   :commands flymake-shellcheck-load
-;; ;;   :init
-;; ;;   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
-
-;; (use-package org
-;;   :ensure t
-;;   :bind ("C-c i" . org-fill-paragraph)
-;;   :hook (org-mode . turn-on-flyspell)
-;;   :init
-;;   (setq org-tags-column -72)
-;;   (setf org-highlight-latex-and-related '(latex))
-;;   ;; (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-
-;;   (org-babel-do-load-languages
-;;    'org-babel-load-languages '((python . t))))
-
-;; (use-package scheme
-;;   :mode (("\\.jou\\'" . scheme-mode)))
-
-;; ;;                                         ;Languages
-;; ;; (if (> emacs-major-version 29)
-;; ;;     (use-package csharp-mode
-;; ;;       :ensure t
-;; ;;       :init
-;; ;;       (if (> emacs-major-version 24)
-;; ;;           (electric-pair-local-mode 1)
-;; ;;         (electric-pair-mode 1))))
-
-;; ;; ;; (use-package php-mode
-;; ;; ;;   :ensure t)
-
-;; ;; (use-package php-ts-mode
-;; ;;   :init
-;; ;;   :config
-;; ;;   (use-package geben
-;; ;;   :ensure t)
-;; ;;   )
-
-;; (use-package rust-mode
-;;   :ensure t
-;;   :mode "\\.rs\\'"
-;;   :config
-;;   (setq rust-format-on-save t))
-
-;; ;; ;; (use-package racer
-;; ;; ;;   :ensure t
-;; ;; ;;   :hook ((rust-mode . racer-mode)
-;; ;; ;;          (racer-mode . eldoc-mode)
-;; ;; ;;          (racer-mode . company-mode))
-;; ;; ;;   :init
-;; ;; ;;   (add-hook 'racer-mode-hook #'company-mode))
-
-;; ;; ;; (use-package flycheck-rust
-;; ;; ;;   :ensure t
-;; ;; ;;   :hook (flycheck-mode . flycheck-rust-setup))
-
-;; ;; PowerShell
-
-;; (use-package powershell
-;;   :ensure t)
-
-
-;; ;; C++
-;; (use-package cmake-mode
-;;   :ensure t)
-
-;; (use-package cmake-ide
-;;   :ensure t
-;;   :init
-;;   (cmake-ide-setup))
-
-;; ;; ;; (use-package irony
-;; ;; ;;   :ensure t
-;; ;; ;;   :hook ((irony-mode . irony-cdb-autosetup-compile-options))
-;; ;; ;;   :config
-;; ;; ;;   (when (eq system-type 'windows-nt)
-;; ;; ;;     (when (boundp 'w32-pipe-read-delay)
-;; ;; ;;       (setq w32-pipe-read-delay 0))
-;; ;; ;;     (when (boundp 'w32-pipe-buffer-size)
-;; ;; ;;       (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
-;; ;; ;;   :init
-;; ;; ;;   (defun my-irony-mode-on ()
-;; ;; ;;     ;; avoid enabling irony-mode in modes that inherits c-mode, e.g: php-mode
-;; ;; ;;     (when (member major-mode irony-supported-major-modes)
-;; ;; ;;       (irony-mode 1)))
-;; ;; ;;   (add-hook 'c++-mode-hook 'my-irony-mode-on)
-;; ;; ;;   (add-hook 'c-mode-hook 'my-irony-mode-on)
-;; ;; ;;   (add-hook 'objc-mode-hook 'my-irony-mode-on)
-;; ;; ;;   (use-package company-irony
-;; ;; ;;     :ensure t
-;; ;; ;;     :hook (irony-mode . company-irony-setup-begin-commands)
-;; ;; ;;     :config
-;; ;; ;;     (add-to-list 'company-backends 'company-irony))
-;; ;; ;;   (use-package flycheck-irony
-;; ;; ;;     :ensure t
-;; ;; ;;     :hook (flycheck-mode . flycheck-irony-setup)))
-
-;; ;; (use-package python-mode
-;; ;;   :hook ((python-mode . flycheck-mode))
-;; ;;   :commands company-complete)
-
-;; ;; ;; (use-package company-jedi
-;; ;; ;;   :ensure t
-;; ;; ;;   :init
-;; ;; ;;   (add-to-list 'company-backends 'company-jedi))
-
-;; ;; (when (memq system-type '(windows-nt ms-dos))
-;; ;;   (setq-default python-shell-completion-native-enable nil))
-
-;; ;; ;; (use-package virtualenvwrapper
-;; ;; ;;   :ensure t
-;; ;; ;;   :config
-;; ;; ;;   (when (memq system-type '(windows-nt ms-dos))
-;; ;; ;;     (setq venv-location (expand-file-name "~/Envs")))
-;; ;; ;;   (venv-initialize-interactive-shells)
-;; ;; ;;   (venv-initialize-eshell))
-
-;; ;; Matlab
-;; (use-package matlab-mode
-;;   :ensure t
-;;   :mode (("\\.m\\'" . matlab-mode))
-;;   :hook turn-off-auto-fill
-;;   :init
-;;   (setq matlab-shell-command "matlab")
-;;   (setq matlab-indent-function 0)
-;;   :config
-;;   (setq matlab-auto-fill nil))
-
-;; ;; Markdown
-;; (use-package markdown-mode
-;;   :ensure t
-;;   :commands (markdown-mode gfm-mode)
-;;   :mode (("README\\.md\\'" . gfm-mode)
-;;          ("\\.md\\'" . markdown-mode)
-;;          ("\\.markdown\\'" . markdown-mode))
-;;   :init (setq markdown-command "multimarkdown"))
-
-;; ;; julia-ts-mode
-;; ;; (use-package julia-mode
-;; ;;   :ensure t
-;; ;;   :mode (("\\.jl\\'" . julia-mode))
-;; ;;   :config
-;; ;;   (use-package julia-shell
-;; ;;     :ensure t
-;; ;;     :config
-;; ;;     (require 'julia-shell)
-;; ;;     (defun my-julia-mode-hooks ()
-;; ;;       (require 'julia-shell-mode))
-;; ;;     (add-hook 'julia-mode-hook 'my-julia-mode-hooks)
-;; ;;     (define-key julia-mode-map (kbd "C-c C-c") 'julia-shell-run-region-or-line)
-;; ;;     (define-key julia-mode-map (kbd "C-c C-s") 'julia-shell-save-and-go)))
+  :mode (("\\.py\\'" . python-ts-mode))
+  :hook (python-ts-mode . lsp-deferred))
 
 ;; ;; ;;; .emacs ends here
