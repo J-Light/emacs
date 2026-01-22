@@ -208,11 +208,11 @@
   :ensure t
   :after lsp-mode
   :init
-  (setq lsp-pyright-langserver-command
-        '("basedpyright-langserver" "--stdio"))
+  (setq lsp-pyright-langserver-command "basedpyright")
+  (setq lsp-pyright-langserver-command-args '("--stdio"))
   (setq lsp-pyright-auto-import-completions t)
   (setq lsp-pyright-use-library-code-for-types t)
-  (setq lsp-pyright-typechecking-mode "basic"))
+  (setq lsp-pyright-type-checking-mode "basic"))
 
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
@@ -262,6 +262,60 @@
   :ensure t
   :if (display-graphic-p)
   :hook (company-mode . company-box-mode))
+
+
+;; Terminal
+(use-package vterm
+  :straight t
+  :ensure t
+  :commands (vterm vterm-other-window)
+  :bind ("C-c t" . vterm)
+  :init
+  (setq vterm-max-scrollback 10000)
+  (setq vterm-kill-buffer-on-exit t)
+  (setq vterm-always-compile-module t)
+  (defun my-open-vterm-number (number)
+    "Open or switch to a numbered vterm buffer."
+    (interactive "nVterm number: ")
+    (vterm (format "*vterm-%d*" number)))
+  (defun my-vterm-1 ()
+    "Open vterm buffer 1."
+    (interactive)
+    (my-open-vterm-number 1))
+  (defun my-vterm-2 ()
+    "Open vterm buffer 2."
+    (interactive)
+    (my-open-vterm-number 2))
+  (defun my-vterm-3 ()
+    "Open vterm buffer 3."
+    (interactive)
+    (my-open-vterm-number 3))
+  (defun my-vterm-4 ()
+    "Open vterm buffer 4."
+    (interactive)
+    (my-open-vterm-number 4))
+  (defun my-vterm-5 ()
+    "Open vterm buffer 5."
+    (interactive)
+    (my-open-vterm-number 5))
+  (defun my-vterm-disable-line-numbers ()
+    "Disable line numbers in vterm buffers."
+    (display-line-numbers-mode 0))
+  :hook (vterm-mode . my-vterm-disable-line-numbers))
+
+(define-key global-map (kbd "C-c v 1") #'my-vterm-1)
+(define-key global-map (kbd "C-c v 2") #'my-vterm-2)
+(define-key global-map (kbd "C-c v 3") #'my-vterm-3)
+(define-key global-map (kbd "C-c v 4") #'my-vterm-4)
+(define-key global-map (kbd "C-c v 5") #'my-vterm-5)
+
+(use-package vterm-toggle
+  :straight t
+  :ensure t
+  :after vterm
+  :bind ("C-`" . vterm-toggle)
+  :init
+  (setq vterm-toggle-scope 'project))
 
 
 ;; Project + UI
@@ -336,8 +390,6 @@
   :config
   (require 'lsp-dockerfile-ls))
 
-
-
 (use-package typescript-ts-mode
   :mode (("\\.ts\\'" . typescript-ts-mode)
          ("\\.tsx\\'" . tsx-ts-mode))
@@ -351,7 +403,6 @@
          (tsx-ts-mode . lsp-deferred)
          (typescript-ts-mode . my-typescript-tabonly)))
 
-
 (use-package go-ts-mode
   :hook (go-ts-mode . lsp-deferred))
 
@@ -364,7 +415,6 @@
 (use-package json-ts-mode
   :mode (("\\.json\\'" . json-ts-mode))
   :hook (json-ts-mode . lsp-deferred))
-
 
 (use-package python-ts-mode
   :mode (("\\.py\\'" . python-ts-mode))
