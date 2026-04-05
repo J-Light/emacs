@@ -50,6 +50,7 @@
 (setq ring-bell-function #'ignore)
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
+(global-auto-revert-mode 1)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (put 'upcase-region 'disabled nil)
@@ -224,15 +225,6 @@
     :add-on? t
     :server-id 'ruff)))
 
-(use-package projectile
-  :straight t
-  :ensure t
-  :init
-  (projectile-mode +1)
-  :bind (:map projectile-mode-map
-              ("s-p" . projectile-command-map)
-              ("C-c p" . projectile-command-map)))
-
 (use-package tree-sitter
   :straight t
   :ensure t
@@ -319,6 +311,10 @@
 
 
 ;; Project + UI
+(use-package project
+  :straight nil
+  :ensure nil)
+
 (use-package treemacs
   :straight t
   :ensure t
@@ -327,6 +323,7 @@
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
   :config
   (progn
+    (treemacs-project-follow-mode t)
     (treemacs-follow-mode t)
     (treemacs-filewatch-mode t)
     (treemacs-fringe-indicator-mode 'always)
@@ -350,10 +347,6 @@
         ("C-x t C-t" . treemacs-find-file)
         ("C-x t M-t" . treemacs-find-tag)))
 
-(use-package treemacs-projectile
-  :straight t
-  :after (treemacs projectile)
-  :ensure t)
 
 (use-package treemacs-icons-dired
   :straight t
@@ -408,6 +401,8 @@
 
 (use-package yaml-ts-mode
   :mode (
+         ("\\.yml\\'" . yaml-ts-mode)
+         ("\\.yaml\\'" . yaml-ts-mode)
          ("\\.fcc\\'" . yaml-ts-mode)
          ("\\.bu\\'" . yaml-ts-mode))
   :hook (yaml-ts-mode . lsp-deferred))
